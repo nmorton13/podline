@@ -1,0 +1,7 @@
+{
+  "name": "podline",
+  "version": "0.2.0",
+  "description": "A podcast player inside Claude Code: subscribe to feeds, browse episodes in a pane, and play them with a now-playing bar above the prompt",
+  "author": { "name": "Nathan Morton" },
+  "types": "./types/index.d.ts"
+}
