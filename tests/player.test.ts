@@ -22,11 +22,11 @@ const fakes = (on: On, searchResults = [NIGHT, OTHER]) => {
   const store: Record<string, unknown> = {}
   const launched: string[][] = []
   const sent: string[] = []
-  const mpv = { isUp: false, pos: 125, dur: 3723 }
+  const mpv = { isUp: false, pos: 125, dur: 3723, speed: 1 }
   const prompts: string[] = []
 
   on('clock.now', () => ({ value: 1_790_000_000_000 }))
-  on('clock.every', () => ({ value: undefined }) as any)
+  on('clock.every', () => ({ deny: 'no timers in tests' }) as any)
   on('store.get', (_$, e) => ({ value: store[e.key] }))
   on('store.set', (_$, e) => {
     store[e.key] = e.value
@@ -35,6 +35,7 @@ const fakes = (on: On, searchResults = [NIGHT, OTHER]) => {
   on('ui.open', () => ({ value: { id: 'podline' } }) as any)
   on('ui.toast', () => ({ value: undefined }) as any)
   on('tool.register', (_$, e) => ({ value: { tool: `mcp__podline__${e.name}` } }) as any)
+  on('session.end', () => ({ sessionId: 'test' }) as any)
   on('model.complete', (_$, e) => {
     prompts.push(e.prompt)
     return { value: { isAnswered: true, text: 'Two hosts talk about the night sky.', usage: {} } } as any
@@ -51,9 +52,11 @@ const fakes = (on: On, searchResults = [NIGHT, OTHER]) => {
       return ok()
     }
     if (e.init?.stdin) sent.push(e.init.stdin)
+    const speedSet = /"set_property","speed",([\d.]+)/.exec(e.init?.stdin ?? '')
+    if (speedSet && mpv.isUp) mpv.speed = Number(speedSet[1])
     if (!mpv.isUp) return { value: { exitCode: 1, stdout: '', stderr: 'no socket' } } as any
     const reply = (data: unknown) => JSON.stringify({ data, request_id: 0, error: 'success' })
-    return ok([reply(mpv.pos), reply(mpv.dur), reply(false), reply(1)].join('\n'))
+    return ok([reply(mpv.pos), reply(mpv.dur), reply(false), reply(mpv.speed)].join('\n'))
   })
   on('ui.render', ($, e) => {
     const { Box } = $.ui.resolve(e)
@@ -96,8 +99,12 @@ test('search, subscribe, browse and play an episode', async ($, on) => {
     const bar = await $.ui.mount({ ...band, surface })
     expect(await bar.find({ text: /Newest ☃/ })).toBeDefined()
     expect(await bar.find({ text: /2:05 \/ 1:02:03/ })).toBeDefined()
+    await bar.press({ key: 'pod-speed' })
     await bar.unmount()
   }
+
+  // The band's speed key stepped it on twice more (once per surface): 1.25 → 1.5 → 1.75.
+  expect(store.speed).toBe(1.75)
 
   // Stop keeps the place for next time.
   await $.command.run(pod('stop'))
@@ -163,4 +170,26 @@ test('Claude can read the library, queue and play by id', async ($, on) => {
 
   const paused = await $.tool.call({ tool: 'mcp__podline__control', action: 'pause' } as any)
   expect(String(paused.result)).toBe('Paused.')
+})
+
+test('a /clear empties the session copy, never the saved library', async ($, on) => {
+  const { store, mpv } = fakes(on, [NIGHT])
+  await $.command.run(pod('night and day'))
+  await $.command.run(pod('add https://feeds.example.com/owls'))
+  await $.tool.call({ tool: 'mcp__podline__play', id: 'ep-1' } as any)
+  mpv.pos = 600
+  await $.command.run(pod('stop'))
+  expect((store.shows as unknown[]).length).toBe(2)
+
+  // A /clear, after another session subscribed to a third show.
+  await $.session.end({ reason: 'clear' } as any)
+  store.shows = [...(store.shows as { feedUrl: string }[]), { feedUrl: 'https://feeds.example.com/third', title: 'Third Show', author: '', subscribedAt: 0 }]
+
+  // The pane reads the record again, and the next change keeps everything.
+  const ui = await $.ui.mount({ ...pane(), surface: 'terminal' })
+  expect(await ui.find({ text: /Third Show/ })).toBeDefined()
+  await ui.unmount()
+  await $.tool.call({ tool: 'mcp__podline__play', id: 'ep-2' } as any)
+  expect((store.shows as unknown[]).length).toBe(3)
+  expect((store.progress as Record<string, { pos: number }>)['ep-1']?.pos).toBe(600)
 })

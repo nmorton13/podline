@@ -1,75 +1,107 @@
 # podline
 
-A podcast player that lives inside [Claude Code](https://claude.com/claude-code). Subscribe to any RSS feed, browse episodes in a side pane, and listen with a now-playing bar above the prompt while you work.
+A podcast player that lives inside [Claude Code](https://claude.com/claude-code). Subscribe to any podcast,
+browse it in a pane beside your work, and listen with a now-playing bar above the prompt. Or just ask
+Claude: "play the How I AI episode about Grok Bot", "queue the newest ThursdAI after this one".
 
-```
-▶ What Bitcoin Did — How AI Could Take Bitcoin to $1 Million      «15 pause 30» stop
-━━━━━━━━━━━━━━●──────────────────────────────────────────────  10:05 / 1:19:41  1.5×
-```
+![podline playing an episode in Claude Code, with Up Next in the pane and the now-playing bar above the prompt](docs/images/podline-playing.png)
 
-## Features
+▶ **[Watch the 30-second demo](docs/podline-demo.mp4)**
 
-- **Subscribe** by name (searches the Apple Podcasts directory) or by feed URL
-- **Library pane** with your shows and their latest episodes: ● new, ◐ in progress, ✓ played
-- **Now-playing bar** with skip back 15s, play/pause, skip ahead 30s and stop
-- **Resume**: every episode picks up where you left off, across sessions
-- **Speed** control, remembered between episodes
-- **Up Next** queue that plays on when an episode finishes
-- **Episode summaries**: press `?` on an episode and Claude summarizes it from the show notes
-- **Ask Claude**: "play the newest ThursdAI I haven't heard", "queue the How I AI episode about Cursor"
-- **New-episode alerts**: feeds are checked every hour
+## What it does
 
-## Requirements
+- **Subscribe to anything:** `/pod how i ai` searches the Apple Podcasts directory (one match subscribes
+  straight away), or give it any RSS feed URL.
+- **A library pane** with your shows and their latest episodes: `●` new, `◐` started, `✓` played.
+- **A now-playing bar** above the prompt: back 15 s, pause, forward 30 s, speed, stop.
+- **Resume:** every episode picks up where you left off, across sessions.
+- **Up Next:** `+` queues an episode; when one finishes, the next one starts.
+- **Summaries:** `?` on an episode and Claude sums it up from the show notes, so you know before you press play.
+- **Ask Claude:** podline gives Claude tools to browse your library and to play, queue and control episodes.
+- **New-episode alerts:** feeds are checked every hour.
 
-- Claude Code with mods (function-hook plugins)
-- [mpv](https://mpv.io) for playback: `brew install mpv`
-- macOS or Linux with `nc` (netcat) supporting `-U`
+![Claude's summary of an episode, unfolded in the podline pane](docs/images/podline-summary.png)
 
 ## Install
 
+It needs Claude Code 2.1.288 or later, and [mpv](https://mpv.io) for playback:
+
 ```sh
-git clone https://github.com/<you>/podline ~/Projects/podline
+brew install mpv          # macOS; on Linux: sudo apt install mpv (or dnf, pacman…)
 ```
 
-Then load it in every session by adding it to `~/.claude/settings.json`:
+Then, in Claude Code:
+
+```
+/plugin marketplace add nmorton13/podline
+/plugin install podline@podline
+```
+
+Restart Claude Code and type `/pod`.
+
+<details>
+<summary>From a checkout instead</summary>
+
+```sh
+git clone https://github.com/nmorton13/podline ~/Projects/podline
+claude --plugin-dir ~/Projects/podline        # one session
+```
+
+To load it in every session, add it to `~/.claude/settings.json`:
 
 ```json
 { "env": { "CLAUDE_CODE_PLUGIN_DIRS": "~/Projects/podline" } }
 ```
 
-Or for a single session: `claude --plugin-dir ~/Projects/podline`.
+</details>
 
-## Commands
+## Use it
 
 | Command | |
 |---|---|
 | `/pod` | open the library |
+| `/pod <name>` | find a show (anything that isn't a command below) |
 | `/pod add <name or URL>` | search, or subscribe to a feed URL |
 | `/pod remove <name>` | unsubscribe |
-| `/pod pause` · `/pod play` | toggle playback |
-| `/pod skip [s]` · `/pod back [s]` | jump ahead 30s / back 15s (or `s` seconds) |
+| `/pod pause` · `/pod play` | pause or resume |
+| `/pod skip [s]` · `/pod back [s]` | forward 30 s / back 15 s, or `s` seconds |
 | `/pod speed <x>` | playback speed, 0.5–3 |
-| `/pod stop` | stop; the position is kept |
+| `/pod stop` | stop; your place is kept |
 | `/pod next` | play the next episode in Up Next |
-| `/pod queue` | list Up Next |
+| `/pod queue` · `/pod clear` | list or empty Up Next |
 | `/pod refresh` | check every feed now |
-| `/pod <name>` | anything else searches for a show |
 
-In the pane: click an episode to play it (click again to pause), `?` for Claude's summary, `+` to add it to Up Next. With the pane focused, `p` pauses, `b`/`f` jump back/forward, `x` changes speed, `n` plays next and `s` stops.
+**In the pane:** click an episode to play it (click it again to pause), `?` for Claude's summary, `+` to add it
+to Up Next.
 
-## Asking Claude
+**Keys:** press `ctrl+x tab` to move into the bar or the pane, then `p` pause, `b` back, `f` forward,
+`x` speed (1× → 1.25× → 1.5× → 1.75× → 2×), `n` next and `s` stop.
 
-podline gives Claude six tools: `library`, `episode`, `play`, `queue`, `control` and `subscribe`. Ask in plain words and Claude looks through your shows and episode notes, then plays, queues or controls playback for you.
+### Asking Claude
 
-Playback runs in a background `mpv`, so it survives the mod reloading, and stops when the Claude Code session ends.
+podline gives Claude six tools: `library`, `episode`, `play`, `queue`, `control` and `subscribe`. Ask in plain
+words and Claude looks through your shows and their show notes, then plays, queues or controls playback for
+you. Show notes come from third-party feeds, and podline labels them for Claude as data, not instructions.
 
-## License
+## How it works
 
-MIT
+- **Playback** runs in a background `mpv`, driven over a Unix socket, so it keeps playing through a
+  `/clear` or a reload of the mod, and stops when the Claude Code session ends.
+- **Your library** (subscriptions, positions, Up Next, summaries) lives in Claude Code's plugin store.
+- **Summaries** come from a small Claude model (Haiku), written once per episode and kept.
+
+See [SECURITY.md](SECURITY.md) for everything podline touches on your machine.
 
 ## Development
 
 ```sh
-claude plugin validate .   # what the engine would load or refuse
-claude plugin test .       # tests/*.test.ts
+claude plugin validate .claude-plugin/plugin.json   # what Claude Code would load or refuse
+claude plugin test .                                # tests/*.test.ts
 ```
+
+The tests drive the whole mod without the network or audio: feeds, `mpv` and the store are faked beneath it,
+and the pane and the bar are drawn on the terminal and desktop surfaces.
+
+## License
+
+MIT

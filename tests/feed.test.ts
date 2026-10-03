@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { decode, parseDuration, parseFeed, parseSearch } from '../hooks/feed'
+import { decode, parseDuration, parseFeed, parseSearch, safeUrl } from '../hooks/feed'
 import { parseReplies, startArgv, toReading } from '../hooks/player'
 import { isFinished, nextSpeed, resumeAt } from '../hooks/register'
 
@@ -52,4 +52,15 @@ test('speed ladder', () => {
   expect(nextSpeed(1.75)).toBe(2)
   expect(nextSpeed(2)).toBe(1)
   expect(nextSpeed(1.1)).toBe(1.25)
+})
+
+test('feed text is made safe for the terminal and the player', () => {
+  expect(decode('Hi\x1b[2J\x1b]8;;http://x\x07there\u202e!')).toBe('Hithere!')
+  expect(decode('&#99999999; ok &#0;')).toBe('ok')
+  expect(safeUrl('https://cdn.example.com/a.mp3')).toBe('https://cdn.example.com/a.mp3')
+  expect(safeUrl('file:///etc/passwd')).toBe('')
+  expect(safeUrl('javascript:alert(1)')).toBe('')
+  const feed = parseFeed('<rss><channel><title>T</title><item><title>Local</title><enclosure url="file:///Users/me/secret.mp3"/></item></channel></rss>')
+  expect(feed.episodes).toEqual([])
+  expect(parseSearch(JSON.stringify({ results: [{ collectionName: 'X', feedUrl: 'ftp://x/feed' }] }))).toEqual([])
 })

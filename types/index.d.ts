@@ -44,6 +44,8 @@ declare module 'claude-code' {
       now: NowPlaying | null
       view: View
       queue: QueueItem[]
+      /** False until this session's copy holds what the store has; a /clear empties it. */
+      loaded: boolean
       /** Claude's summary per episode guid; PENDING while one is being written. */
       summaries: Record<string, string>
     }

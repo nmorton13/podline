@@ -2,15 +2,37 @@ import type { Episode, SearchResult } from '../types'
 
 export type ParsedFeed = { title: string; author: string; episodes: Episode[] }
 
+// Feed text is third-party: strip terminal escape sequences and control
+// characters before it reaches the screen or the model.
+const ANSI = /\x1b\[[0-?]*[ -/]*[@-~]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)?|\x1b[PX^_][^\x1b]*(?:\x1b\\)?|\x1b[@-Z\\-_]?|\x9b[0-?]*[ -/]*[@-~]/g
+const CONTROL = /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g
+
+export const clean = (text: string): string => text.replace(ANSI, '').replace(CONTROL, '')
+
+/** An http(s) URL, or '' for anything else (file:, javascript:, malformed). */
+export const safeUrl = (value: string): string => {
+  if (value.length > 4096 || /[\s\x00-\x1f]/.test(value)) return ''
+  try {
+    const url = new URL(value)
+    return (url.protocol === 'http:' || url.protocol === 'https:') && url.hostname ? value : ''
+  } catch {
+    return ''
+  }
+}
+
 const ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' }
 
-export const decode = (raw: string): string =>
-  raw
+/** A numeric character reference as text; '' for one outside Unicode. */
+const codePoint = (n: number) => (Number.isInteger(n) && n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : '')
+
+export const decode = (raw: string): string => {
+  const text = raw
     .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
-    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => String.fromCodePoint(parseInt(hex, 16)))
-    .replace(/&#(\d+);/g, (_, dec: string) => String.fromCodePoint(Number(dec)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => codePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec: string) => codePoint(Number(dec)))
     .replace(/&([a-z]+);/gi, (whole, name: string) => ENTITIES[name.toLowerCase()] ?? whole)
-    .trim()
+  return clean(text).trim()
+}
 
 const escape = (name: string) => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
@@ -47,7 +69,7 @@ export const parseFeed = (xml: string, limit = 50): ParsedFeed => {
 
   const episodes: Episode[] = []
   for (const item of items) {
-    const url = attr(item, 'enclosure', 'url')
+    const url = safeUrl(attr(item, 'enclosure', 'url'))
     if (!url) continue
     const date = Date.parse(tag(item, 'pubDate'))
     episodes.push({
@@ -76,6 +98,6 @@ export const searchUrl = (term: string) =>
 export const parseSearch = (json: string): SearchResult[] => {
   const body = JSON.parse(json) as { results?: { feedUrl?: string; collectionName?: string; artistName?: string }[] }
   return (body.results ?? [])
+    .map(r => ({ feedUrl: safeUrl(r.feedUrl ?? ''), title: clean(r.collectionName ?? 'Untitled podcast'), author: clean(r.artistName ?? '') }))
     .filter(r => r.feedUrl)
-    .map(r => ({ feedUrl: r.feedUrl ?? '', title: r.collectionName ?? 'Untitled podcast', author: r.artistName ?? '' }))
 }
