@@ -10,17 +10,35 @@ Claude: "play the How I AI episode about Grok Bot", "queue the newest ThursdAI a
 
 ## What it does
 
-- **Subscribe to anything:** `/pod how i ai` searches the Apple Podcasts directory (one match subscribes
-  straight away), or give it any RSS feed URL.
-- **A library pane** with your shows and their latest episodes: `●` new, `◐` started, `✓` played.
-- **A now-playing bar** above the prompt: back 15 s, pause, forward 30 s, speed, stop.
-- **Resume:** every episode picks up where you left off, across sessions.
-- **Up Next:** `+` queues an episode; when one finishes, the next one starts.
-- **Summaries:** `?` on an episode and Claude sums it up from the show notes, so you know before you press play.
-- **Ask Claude:** podline gives Claude tools to browse your library and to play, queue and control episodes.
-- **New-episode alerts:** feeds are checked every hour.
+**Your library, beside your work.** `/pod` opens a pane with your shows and their latest episodes:
+`●` new, `◐` started, `✓` played. Subscribe by name (`/pod how i ai` searches the Apple Podcasts
+directory; one match subscribes straight away) or with any RSS feed URL.
 
-![Claude's summary of an episode, unfolded in the podline pane](docs/images/podline-summary.png)
+<img src="docs/images/podline-library.png" alt="The podline pane: How I AI expanded, its episodes marked new or started" width="640">
+
+**Know before you listen.** Press `?` on an episode and Claude sums it up from the show notes.
+
+<img src="docs/images/podline-summary.png" alt="Claude's summary of an episode, unfolded in the pane" width="640">
+
+**Just ask.** Claude can browse your library and play, queue and control episodes. It picks up where
+you left off.
+
+<img src="docs/images/podline-ask.png" alt="Asking Claude to play the How I AI episode about Grok Bot; Claude finds it and plays it">
+
+**Up Next.** `+` queues an episode, or ask Claude to; when one finishes, the next one starts.
+
+<img src="docs/images/podline-upnext.png" alt="The player card and Up Next in the pane" width="640">
+
+**A now-playing bar above the prompt,** with keys: `ctrl+x tab`, then `b` back 15 s, `p` pause,
+`f` forward 30 s, `x` speed, `s` stop.
+
+<img src="docs/images/podline-bar.png" alt="The now-playing bar with its keys, at 1.25× speed">
+
+**Find new shows** without leaving the terminal: `/pod add <name>` lists matches to subscribe with `+`.
+
+<img src="docs/images/podline-search.png" alt="Search results for hardcore history in the pane" width="640">
+
+Every episode resumes where you left off, across sessions, and feeds are checked for new episodes every hour.
 
 ## Install
 
@@ -70,6 +88,9 @@ To load it in every session, add it to `~/.claude/settings.json`:
 | `/pod next` | play the next episode in Up Next |
 | `/pod queue` · `/pod clear` | list or empty Up Next |
 | `/pod refresh` | check every feed now |
+| `/pod help` | all of the above |
+
+<img src="docs/images/podline-help.png" alt="The /pod help command list" width="640">
 
 **In the pane:** click an episode to play it (click it again to pause), `?` for Claude's summary, `+` to add it
 to Up Next.

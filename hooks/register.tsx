@@ -23,17 +23,18 @@ const PENDING = '…'
 const SUMMARY_MODEL = 'haiku'
 
 const USAGE = [
-  '/pod                    open the podcast library',
-  '/pod add <name or URL>  search the directory, or subscribe to a feed URL',
-  '/pod remove <name>      unsubscribe',
-  '/pod pause | play       pause or resume (toggle also works)',
-  '/pod skip [s] | back [s] jump ahead 30s / back 15s, or by s seconds',
-  '/pod speed <x>          playback speed, e.g. 1.5',
-  '/pod stop               stop playback',
-  '/pod next               play the next episode in Up Next',
-  '/pod queue              list Up Next',
-  '/pod clear              empty Up Next',
-  '/pod refresh            check every feed for new episodes',
+  'commands:',
+  '/pod                      open the podcast library',
+  '/pod <name>               find a show (anything that isn\'t a command)',
+  '/pod add <name or URL>    search the directory, or subscribe to a feed URL',
+  '/pod remove <name>        unsubscribe',
+  '/pod pause | play         pause or resume',
+  '/pod skip [s] | back [s]  forward 30s / back 15s, or s seconds',
+  '/pod speed <x>            playback speed, 0.5 to 3',
+  '/pod stop                 stop; your place is kept',
+  '/pod next                 play the next episode in Up Next',
+  '/pod queue | clear        list or empty Up Next',
+  '/pod refresh              check every feed for new episodes',
 ].join('\n')
 
 /** Done once the listener is within 30 seconds, or 3%, of the end. */
