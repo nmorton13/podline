@@ -6,18 +6,18 @@ import { parseFeed, parseSearch, safeUrl, searchUrl } from './feed'
 import { clock, day, fit, length, progressBar } from './format'
 import { ipcCall, parseReplies, READ_COMMANDS, SOCKET, socketFor, startArgv, toReading } from './player'
 
-const PANE = 'podline'
+const PANE = 'sidecast'
 const HOUR = 60 * 60 * 1000
 const EPISODES_SHOWN = 15
 
-const library = atom({ plugin: 'podline', key: 'library' } as const, { shows: [], episodes: {} })
-const progress = atom({ plugin: 'podline', key: 'progress' } as const, {})
-const nowPlaying = atom({ plugin: 'podline', key: 'now' } as const, null)
-const view = atom({ plugin: 'podline', key: 'view' } as const, { openShow: null, results: [], note: null, infoGuid: null })
-const queue = atom({ plugin: 'podline', key: 'queue' } as const, [])
+const library = atom({ plugin: 'sidecast', key: 'library' } as const, { shows: [], episodes: {} })
+const progress = atom({ plugin: 'sidecast', key: 'progress' } as const, {})
+const nowPlaying = atom({ plugin: 'sidecast', key: 'now' } as const, null)
+const view = atom({ plugin: 'sidecast', key: 'view' } as const, { openShow: null, results: [], note: null, infoGuid: null })
+const queue = atom({ plugin: 'sidecast', key: 'queue' } as const, [])
 /** False until this session's state holds what $.store has; a /clear empties the state again. */
-const loaded = atom({ plugin: 'podline', key: 'loaded' } as const, false)
-const summaries = atom({ plugin: 'podline', key: 'summaries' } as const, {})
+const loaded = atom({ plugin: 'sidecast', key: 'loaded' } as const, false)
+const summaries = atom({ plugin: 'sidecast', key: 'summaries' } as const, {})
 
 const PENDING = '…'
 const SUMMARY_MODEL = 'haiku'
@@ -102,7 +102,7 @@ const setNow = async ($: EngineInterface, now: NowPlaying | null) => {
 
 const fetchFeed = async ($: EngineInterface, url: string) => {
   if (!safeUrl(url)) throw new Error('feeds must be http(s) URLs')
-  const response = await $.http.fetch(url, { headers: { 'User-Agent': 'podline/0.3 (+https://github.com/nmorton13/podline)' } })
+  const response = await $.http.fetch(url, { headers: { 'User-Agent': 'sidecast/0.3 (+https://github.com/nmorton13/sidecast)' } })
   if (!response.ok) throw new Error(`feed answered ${response.status}`)
   return parseFeed(response.text)
 }
@@ -309,7 +309,7 @@ const play = async ($: EngineInterface, show: Show, ep: Episode) => {
     return
   }
   if (!(await hasMpv($))) {
-    $.ui.toast('Podline needs mpv to play audio: brew install mpv')
+    $.ui.toast('Sidecast needs mpv to play audio: brew install mpv')
     return
   }
   const speed = Number((await $.store.get('speed')) ?? 1) || 1
@@ -570,7 +570,7 @@ const TOOLS = [
   {
     name: 'library',
     description:
-      "Lists the person's podcast library in the podline player: what is playing, Up Next, and each subscribed show's latest episodes with their ids, dates, lengths and played status. Call this first to find an episode id.",
+      "Lists the person's podcast library in the sidecast player: what is playing, Up Next, and each subscribed show's latest episodes with their ids, dates, lengths and played status. Call this first to find an episode id.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -634,16 +634,16 @@ export const register: Register = on => {
     return next(e)
   })
 
-  on('tool.call', { tool: 'mcp__podline__library' }, async ($, e) => {
+  on('tool.call', { tool: 'mcp__sidecast__library' }, async ($, e) => {
     const input = e as unknown as { show?: string; limit?: number }
     return { result: await describeLibrary($, input.show, input.limit ?? 10) }
   })
 
-  on('tool.call', { tool: 'mcp__podline__episode' }, async ($, e) => {
+  on('tool.call', { tool: 'mcp__sidecast__episode' }, async ($, e) => {
     return { result: await describeEpisode($, String((e as unknown as { id: string }).id)) }
   })
 
-  on('tool.call', { tool: 'mcp__podline__play' }, async ($, e) => {
+  on('tool.call', { tool: 'mcp__sidecast__play' }, async ($, e) => {
     await ensure($)
     const found = findEpisode(await read($, library), String((e as unknown as { id: string }).id))
     if (!found) return { result: 'No episode with that id; call the library tool for ids.' }
@@ -652,17 +652,17 @@ export const register: Register = on => {
     return { result: now?.guid === found.ep.guid ? `Playing ${found.show.title} — ${found.ep.title} from ${clock(now.pos)}.` : 'Could not start playback.' }
   })
 
-  on('tool.call', { tool: 'mcp__podline__queue' }, async ($, e) => {
+  on('tool.call', { tool: 'mcp__sidecast__queue' }, async ($, e) => {
     const input = e as unknown as { id: string; next?: boolean }
     const title = await enqueue($, String(input.id), input.next === true)
     return { result: title ? `Added ${title} to Up Next${input.next ? ', first in line' : ''}.` : 'No episode with that id.' }
   })
 
-  on('tool.call', { tool: 'mcp__podline__control' }, async ($, e) => {
+  on('tool.call', { tool: 'mcp__sidecast__control' }, async ($, e) => {
     return { result: await control($, e as unknown as { action?: string; seconds?: number; speed?: number }) }
   })
 
-  on('tool.call', { tool: 'mcp__podline__subscribe' }, async ($, e) => {
+  on('tool.call', { tool: 'mcp__sidecast__subscribe' }, async ($, e) => {
     return { result: await subscribeForClaude($, String((e as unknown as { query: string }).query)) }
   })
 

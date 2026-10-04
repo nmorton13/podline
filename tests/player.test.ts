@@ -8,12 +8,12 @@ const NIGHT = { collectionName: 'Night & Day', artistName: 'Ada', feedUrl: FEED_
 const OTHER = { collectionName: 'Night Owls', artistName: 'Bo', feedUrl: 'https://feeds.example.com/owls' }
 
 const pane = (bodyColumns = 80) => ({
-  plugin: 'podline',
+  plugin: 'sidecast',
   component: 'Pane' as const,
-  requestId: 'podline',
+  requestId: 'sidecast',
   props: { title: 'Podcasts', isFocused: true, bodyColumns, placement: 'dock' } as any,
 })
-const band = { plugin: 'podline', component: 'AbovePrompt' as const,
+const band = { plugin: 'sidecast', component: 'AbovePrompt' as const,
   props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 80 } as any }
 const pod = (args: string) => ({ command: 'pod', args, origin: { kind: 'human' }, presentation: 'text' }) as any
 
@@ -32,9 +32,9 @@ const fakes = (on: On, searchResults = [NIGHT, OTHER]) => {
     store[e.key] = e.value
     return { value: undefined }
   })
-  on('ui.open', () => ({ value: { id: 'podline' } }) as any)
+  on('ui.open', () => ({ value: { id: 'sidecast' } }) as any)
   on('ui.toast', () => ({ value: undefined }) as any)
-  on('tool.register', (_$, e) => ({ value: { tool: `mcp__podline__${e.name}` } }) as any)
+  on('tool.register', (_$, e) => ({ value: { tool: `mcp__sidecast__${e.name}` } }) as any)
   on('session.end', () => ({ sessionId: 'test' }) as any)
   on('model.complete', (_$, e) => {
     prompts.push(e.prompt)
@@ -157,18 +157,18 @@ test('Claude can read the library, queue and play by id', async ($, on) => {
   const { launched } = fakes(on, [NIGHT])
   await $.command.run(pod('night and day'))
 
-  const library = await $.tool.call({ tool: 'mcp__podline__library' } as any)
+  const library = await $.tool.call({ tool: 'mcp__sidecast__library' } as any)
   expect(String(library.result)).toContain('id="ep-2"')
   expect(String(library.result)).toContain('Newest ☃')
 
-  const queued = await $.tool.call({ tool: 'mcp__podline__queue', id: 'ep-1' } as any)
+  const queued = await $.tool.call({ tool: 'mcp__sidecast__queue', id: 'ep-1' } as any)
   expect(String(queued.result)).toContain('Added Older one')
 
-  const played = await $.tool.call({ tool: 'mcp__podline__play', id: 'ep-2' } as any)
+  const played = await $.tool.call({ tool: 'mcp__sidecast__play', id: 'ep-2' } as any)
   expect(String(played.result)).toContain('Playing Night & Day — Newest ☃')
   expect(launched.length).toBe(1)
 
-  const paused = await $.tool.call({ tool: 'mcp__podline__control', action: 'pause' } as any)
+  const paused = await $.tool.call({ tool: 'mcp__sidecast__control', action: 'pause' } as any)
   expect(String(paused.result)).toBe('Paused.')
 })
 
@@ -176,7 +176,7 @@ test('a /clear empties the session copy, never the saved library', async ($, on)
   const { store, mpv } = fakes(on, [NIGHT])
   await $.command.run(pod('night and day'))
   await $.command.run(pod('add https://feeds.example.com/owls'))
-  await $.tool.call({ tool: 'mcp__podline__play', id: 'ep-1' } as any)
+  await $.tool.call({ tool: 'mcp__sidecast__play', id: 'ep-1' } as any)
   mpv.pos = 600
   await $.command.run(pod('stop'))
   expect((store.shows as unknown[]).length).toBe(2)
@@ -189,7 +189,7 @@ test('a /clear empties the session copy, never the saved library', async ($, on)
   const ui = await $.ui.mount({ ...pane(), surface: 'terminal' })
   expect(await ui.find({ text: /Third Show/ })).toBeDefined()
   await ui.unmount()
-  await $.tool.call({ tool: 'mcp__podline__play', id: 'ep-2' } as any)
+  await $.tool.call({ tool: 'mcp__sidecast__play', id: 'ep-2' } as any)
   expect((store.shows as unknown[]).length).toBe(3)
   expect((store.progress as Record<string, { pos: number }>)['ep-1']?.pos).toBe(600)
 })

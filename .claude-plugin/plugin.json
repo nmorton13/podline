@@ -1,13 +1,13 @@
 {
-  "name": "podline",
-  "version": "0.3.0",
+  "name": "sidecast",
+  "version": "0.4.0",
   "description": "A podcast player inside Claude Code: subscribe to feeds, browse episodes in a pane, and play them with a now-playing bar above the prompt",
   "author": {
     "name": "Nathan Morton"
   },
   "types": "./types/index.d.ts",
-  "homepage": "https://github.com/nmorton13/podline",
-  "repository": "https://github.com/nmorton13/podline",
+  "homepage": "https://github.com/nmorton13/sidecast",
+  "repository": "https://github.com/nmorton13/sidecast",
   "license": "MIT",
   "keywords": [
     "podcast",

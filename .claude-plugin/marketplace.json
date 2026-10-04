@@ -1,10 +1,10 @@
 {
-  "name": "podline",
+  "name": "sidecast",
   "owner": { "name": "Nathan Morton" },
   "metadata": { "description": "A podcast player inside Claude Code." },
   "plugins": [
     {
-      "name": "podline",
+      "name": "sidecast",
       "source": "./",
       "description": "Subscribe to any podcast, browse it in a pane, play it with a now-playing bar above the prompt, and ask Claude to find, summarize, queue or play episodes."
     }

@@ -2,10 +2,10 @@
 // socket, so playback outlives a reload of the mod. This file builds the
 // commands and reads the replies; register.tsx runs them.
 /** The socket of a player started before sockets were per play. */
-export const SOCKET = '/tmp/podline-mpv.sock'
+export const SOCKET = '/tmp/sidecast-mpv.sock'
 
 /** Each play gets its own socket, so a player still shutting down never takes the new one's. */
-export const socketFor = (startedAt: number) => `/tmp/podline-${startedAt}.sock`
+export const socketFor = (startedAt: number) => `/tmp/sidecast-${startedAt}.sock`
 
 export type Reading = { pos: number | null; dur: number | null; isPaused: boolean | null; speed: number | null }
 
@@ -47,7 +47,7 @@ export const startArgv = (args: { socket: string; url: string; title: string; st
   '-c',
   'nohup mpv --no-video --no-terminal --idle=no --input-ipc-server="$1" ' +
     '--start="$2" --speed="$3" --force-media-title="$4" -- "$5" >/dev/null 2>&1 &',
-  'podline',
+  'sidecast',
   args.socket,
   String(Math.floor(args.startAt)),
   String(args.speed),

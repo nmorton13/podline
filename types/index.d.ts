@@ -38,7 +38,7 @@ export type QueueItem = { feedUrl: string; guid: string }
 
 declare module 'claude-code' {
   interface PluginState {
-    podline: {
+    sidecast: {
       library: Library
       progress: Record<string, Progress>
       now: NowPlaying | null

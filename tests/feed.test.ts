@@ -34,8 +34,8 @@ test('mpv replies and launch arguments', () => {
   expect(parseReplies('', 1)).toBe(null)
   expect(toReading([1, 2, false, 1.5])).toEqual({ pos: 1, dur: 2, isPaused: false, speed: 1.5 })
   // A hostile title or URL stays one argument, never shell text.
-  const argv = startArgv({ socket: '/tmp/podline-1.sock', url: 'https://x/a.mp3"; rm -rf ~', title: '$(boom)', startAt: 61.9, speed: 1.5 })
-  expect(argv.slice(-5)).toEqual(['/tmp/podline-1.sock', '61', '1.5', '$(boom)', 'https://x/a.mp3"; rm -rf ~'])
+  const argv = startArgv({ socket: '/tmp/sidecast-1.sock', url: 'https://x/a.mp3"; rm -rf ~', title: '$(boom)', startAt: 61.9, speed: 1.5 })
+  expect(argv.slice(-5)).toEqual(['/tmp/sidecast-1.sock', '61', '1.5', '$(boom)', 'https://x/a.mp3"; rm -rf ~'])
 })
 
 test('resume and finished rules', () => {
