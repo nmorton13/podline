@@ -4,7 +4,7 @@ A podcast player that lives inside [Claude Code](https://claude.com/claude-code)
 browse it in a pane beside your work, and listen with a now-playing bar above the prompt. Or just ask
 Claude: "play the How I AI episode about Grok Bot", "queue the newest ThursdAI after this one".
 
-![sidecast playing an episode in Claude Code, with Up Next in the pane and the now-playing bar above the prompt](docs/images/sidecast-playing.png)
+![sidecast in Claude Code: Claude playing and queueing episodes, the library collapsed in the pane with Up Next, and the now-playing bar above the prompt](docs/images/sidecast-playing.png)
 
 ▶ **[Watch the 30-second demo](docs/sidecast-demo.mp4)**
 
@@ -78,6 +78,7 @@ To load it in every session, add it to `~/.claude/settings.json`:
 | Command | |
 |---|---|
 | `/pod` | open the library |
+| `/sidecast` | the same as `/pod`, by the plugin's name |
 | `/pod <name>` | find a show (anything that isn't a command below) |
 | `/pod add <name or URL>` | search, or subscribe to a feed URL |
 | `/pod remove <name>` | unsubscribe |

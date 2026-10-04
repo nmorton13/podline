@@ -615,11 +615,82 @@ const TOOLS = [
   },
 ] as const
 
+/** /pod and /sidecast: the one command, its verb first. */
+const pod = async ($: EngineInterface, args: string) => {
+  await ensure($)
+  const [verb = '', ...rest] = args.trim().split(/\s+/)
+  const arg = rest.join(' ').trim()
+  const lib = await read($, library)
+
+  switch (verb.toLowerCase()) {
+    case '':
+    case 'open':
+    case 'library':
+      await $.ui.open({ id: PANE, title: 'Podcasts' })
+      return { text: lib.shows.length ? 'Podcast library opened.' : 'No subscriptions yet: /pod add <name or feed URL>' }
+    case 'add':
+    case 'search':
+    case 'subscribe': {
+      if (!arg) return { text: 'Usage: /pod add <name or feed URL>' }
+      return { text: await addOrSearch($, arg) }
+    }
+    case 'remove':
+    case 'unsubscribe': {
+      const show = findShow(lib, arg)
+      if (!show) return { text: `No subscription matches “${arg}”.` }
+      await unsubscribe($, show.feedUrl)
+      return { text: `Unsubscribed from ${show.title}.` }
+    }
+    case 'pause':
+    case 'play':
+    case 'resume':
+    case 'toggle':
+      return { text: (await togglePause($)) ? 'Toggled playback.' : 'Nothing is playing: pick an episode with /pod.' }
+    case 'skip':
+    case 'forward':
+      return { text: (await seek($, Number(arg) || 30)) ? 'Skipped ahead.' : 'Nothing is playing.' }
+    case 'back':
+    case 'rewind':
+      return { text: (await seek($, -(Number(arg) || 15))) ? 'Jumped back.' : 'Nothing is playing.' }
+    case 'speed': {
+      const speed = Number(arg.replace(/x$/i, ''))
+      if (!(speed >= 0.5 && speed <= 3)) return { text: 'Usage: /pod speed <0.5 to 3>' }
+      await setSpeed($, speed)
+      return { text: `Speed ${speed}×.` }
+    }
+    case 'stop': {
+      const was = await stop($)
+      return { text: was ? `Stopped ${was.title}; it resumes from ${clock(was.pos)}.` : 'Nothing is playing.' }
+    }
+    case 'next': {
+      const title = await playNext($)
+      return { text: title ? `Playing ${title}.` : 'Up Next is empty: add episodes with + in the pane.' }
+    }
+    case 'clear':
+      await saveQueue($, [])
+      return { text: 'Up Next is empty.' }
+    case 'queue': {
+      const lib2 = await read($, library)
+      const titles = (await read($, queue)).map(item => findEpisode(lib2, item.guid)?.ep.title).filter(Boolean)
+      return { text: titles.length ? `Up next:\n${titles.map((t, i) => `${i + 1}. ${t}`).join('\n')}` : 'Up Next is empty.' }
+    }
+    case 'refresh':
+      await refreshAll($, false)
+      return { text: (await read($, view)).note ?? 'Refreshed.' }
+    case 'help':
+      return { text: USAGE }
+    default:
+      // Anything else is a show to look for: /pod how i ai
+      return { text: await addOrSearch($, args.trim()) }
+  }
+}
+
 // --- hooks ------------------------------------------------------------------
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({ name: 'pod', description: 'Podcasts: /pod to browse, /pod help for the rest' })
+    await $.command.register({ name: 'sidecast', description: 'Podcasts (same as /pod): browse, play, queue' })
 
     await update($, loaded, () => false)
     await hydrate($)
@@ -674,74 +745,9 @@ export const register: Register = on => {
     return next(e)
   })
 
-  on('command.run', { command: 'pod' }, async ($, e) => {
-    await ensure($)
-    const [verb = '', ...rest] = e.args.trim().split(/\s+/)
-    const arg = rest.join(' ').trim()
-    const lib = await read($, library)
-
-    switch (verb.toLowerCase()) {
-      case '':
-      case 'open':
-      case 'library':
-        await $.ui.open({ id: PANE, title: 'Podcasts' })
-        return { text: lib.shows.length ? 'Podcast library opened.' : 'No subscriptions yet: /pod add <name or feed URL>' }
-      case 'add':
-      case 'search':
-      case 'subscribe': {
-        if (!arg) return { text: 'Usage: /pod add <name or feed URL>' }
-        return { text: await addOrSearch($, arg) }
-      }
-      case 'remove':
-      case 'unsubscribe': {
-        const show = findShow(lib, arg)
-        if (!show) return { text: `No subscription matches “${arg}”.` }
-        await unsubscribe($, show.feedUrl)
-        return { text: `Unsubscribed from ${show.title}.` }
-      }
-      case 'pause':
-      case 'play':
-      case 'resume':
-      case 'toggle':
-        return { text: (await togglePause($)) ? 'Toggled playback.' : 'Nothing is playing: pick an episode with /pod.' }
-      case 'skip':
-      case 'forward':
-        return { text: (await seek($, Number(arg) || 30)) ? 'Skipped ahead.' : 'Nothing is playing.' }
-      case 'back':
-      case 'rewind':
-        return { text: (await seek($, -(Number(arg) || 15))) ? 'Jumped back.' : 'Nothing is playing.' }
-      case 'speed': {
-        const speed = Number(arg.replace(/x$/i, ''))
-        if (!(speed >= 0.5 && speed <= 3)) return { text: 'Usage: /pod speed <0.5 to 3>' }
-        await setSpeed($, speed)
-        return { text: `Speed ${speed}×.` }
-      }
-      case 'stop': {
-        const was = await stop($)
-        return { text: was ? `Stopped ${was.title}; it resumes from ${clock(was.pos)}.` : 'Nothing is playing.' }
-      }
-      case 'next': {
-        const title = await playNext($)
-        return { text: title ? `Playing ${title}.` : 'Up Next is empty: add episodes with + in the pane.' }
-      }
-      case 'clear':
-        await saveQueue($, [])
-        return { text: 'Up Next is empty.' }
-      case 'queue': {
-        const lib2 = await read($, library)
-        const titles = (await read($, queue)).map(item => findEpisode(lib2, item.guid)?.ep.title).filter(Boolean)
-        return { text: titles.length ? `Up next:\n${titles.map((t, i) => `${i + 1}. ${t}`).join('\n')}` : 'Up Next is empty.' }
-      }
-      case 'refresh':
-        await refreshAll($, false)
-        return { text: (await read($, view)).note ?? 'Refreshed.' }
-      case 'help':
-        return { text: USAGE }
-      default:
-        // Anything else is a show to look for: /pod how i ai
-        return { text: await addOrSearch($, e.args.trim()) }
-    }
-  })
+  on('command.run', { command: 'pod' }, ($, e) => pod($, e.args))
+  // The plugin's own name, for whoever types it first after installing.
+  on('command.run', { command: 'sidecast' }, ($, e) => pod($, e.args))
 
   // Now playing, above the prompt. Whatever else draws there still draws below it.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {

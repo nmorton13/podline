@@ -111,6 +111,15 @@ test('search, subscribe, browse and play an episode', async ($, on) => {
   expect((store.progress as Record<string, { pos: number }>)['ep-2']?.pos).toBe(125)
 })
 
+test('/sidecast is the same command as /pod', async ($, on) => {
+  fakes(on, [NIGHT])
+  await $.command.run(pod('night and day'))
+  const viaAlias = await $.command.run({ ...pod('queue'), command: 'sidecast' })
+  const viaPod = await $.command.run(pod('queue'))
+  expect(viaAlias.text).toBe(viaPod.text)
+  expect((await $.command.run({ ...pod(''), command: 'sidecast' })).text).toBe('Podcast library opened.')
+})
+
 test('/pod <name> with one match subscribes straight away', async ($, on) => {
   const { store } = fakes(on, [NIGHT])
   const result = await $.command.run(pod('night and day'))
