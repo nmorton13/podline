@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import { decode, parseDuration, parseFeed, parseSearch, safeUrl } from '../hooks/feed'
-import { parseReplies, startArgv, toReading } from '../hooks/player'
+import { ipcCall, parseClient, parseReplies, startArgv, toReading } from '../hooks/player'
 import { isFinished, nextSpeed, resumeAt } from '../hooks/register'
 
 import { FEED } from './fixtures'
@@ -63,4 +63,17 @@ test('feed text is made safe for the terminal and the player', () => {
   const feed = parseFeed('<rss><channel><title>T</title><item><title>Local</title><enclosure url="file:///Users/me/secret.mp3"/></item></channel></rss>')
   expect(feed.episodes).toEqual([])
   expect(parseSearch(JSON.stringify({ results: [{ collectionName: 'X', feedUrl: 'ftp://x/feed' }] }))).toEqual([])
+})
+
+test('each mpv client gets its own argv, and the same JSON lines', () => {
+  const sock = '/tmp/sidecast-1.sock'
+  const cmds = [['get_property', 'pause'], ['cycle', 'pause']]
+  expect(ipcCall('nc', sock, cmds).argv).toEqual(['nc', '-U', '-w', '1', sock])
+  expect(ipcCall('socat', sock, cmds).argv).toEqual(['socat', '-t', '0.3', '-', `UNIX-CONNECT:${sock}`])
+  const py = ipcCall('python3', sock, cmds).argv
+  expect([py[0], py[1], py[3]]).toEqual(['python3', '-c', sock])
+  expect(ipcCall('python3', sock, cmds).stdin).toBe('{"command":["get_property","pause"]}\n{"command":["cycle","pause"]}\n')
+  expect(parseClient('python3\n')).toBe('python3')
+  expect(parseClient('none\n')).toBe(null)
+  expect(parseClient('rm -rf /')).toBe(null)
 })

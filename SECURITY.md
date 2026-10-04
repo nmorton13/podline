@@ -8,9 +8,11 @@ Please report vulnerabilities privately through this repository's
 
 - **Network:** fetches the RSS feeds you subscribe to and the Apple Podcasts search API
   (`itunes.apple.com`), through Claude Code's host. Nothing else, and no account or key.
-- **Processes:** runs `mpv` in the background to play audio, and `nc` to talk to it over a
-  Unix socket in `/tmp`. Arguments are passed as an argument vector, never through a shell
-  string.
+- **Processes:** runs `mpv` in the background to play audio, and a small client to talk to it
+  over a Unix socket in `/tmp`: `nc -U` on macOS; on Linux `python3` (a 12-line socket client in
+  `hooks/player.ts`), else `socat`, else `nc -U`. A one-line `sh` check picks the client once per
+  session, and another checks that `mpv` is installed. Arguments are passed as an argument
+  vector, never pasted into a shell string.
 - **Storage:** subscriptions, positions, Up Next and summaries live in Claude Code's plugin
   store for sidecast.
 - **Claude:** `?` sends an episode's title and show notes to a small Claude model (Haiku) for

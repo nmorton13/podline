@@ -4,7 +4,8 @@ import type { EngineInterface, Register, Timer } from 'claude-code'
 import type { Episode, Library, NowPlaying, Progress, QueueItem, Show, View } from '../types'
 import { parseFeed, parseSearch, safeUrl, searchUrl } from './feed'
 import { clock, day, fit, length, progressBar } from './format'
-import { ipcCall, parseReplies, READ_COMMANDS, SOCKET, socketFor, startArgv, toReading } from './player'
+import { CLIENT_PROBE, ipcCall, parseClient, parseReplies, READ_COMMANDS, SOCKET, socketFor, startArgv, toReading } from './player'
+import type { IpcClient } from './player'
 
 const PANE = 'sidecast'
 const HOUR = 60 * 60 * 1000
@@ -193,9 +194,25 @@ const refreshAll = async ($: EngineInterface, isQuiet: boolean) => {
 
 // --- playback ---------------------------------------------------------------
 
+// Which program talks to mpv's socket on this machine; undefined until asked.
+let client: IpcClient | null | undefined
+
+const ipcClient = async ($: EngineInterface) => {
+  if (client === undefined) {
+    try {
+      client = parseClient((await $.process.run(['sh', '-c', CLIENT_PROBE])).stdout)
+    } catch {
+      client = null
+    }
+  }
+  return client
+}
+
 /** Sends mpv commands; each one's data, or null when no player answers. */
 const ipc = async ($: EngineInterface, socket: string, commands: unknown[][]): Promise<unknown[] | null> => {
-  const { argv, stdin } = ipcCall(socket, commands)
+  const tool = await ipcClient($)
+  if (!tool) return null
+  const { argv, stdin } = ipcCall(tool, socket, commands)
   try {
     const run = await $.process.run(argv, { stdin, timeoutMs: 3000 })
     return run.exitCode === 0 ? parseReplies(run.stdout, commands.length) : null
@@ -310,6 +327,11 @@ const play = async ($: EngineInterface, show: Show, ep: Episode) => {
   }
   if (!(await hasMpv($))) {
     $.ui.toast('Sidecast needs mpv to play audio: brew install mpv')
+    return
+  }
+  if (!(await ipcClient($))) {
+    client = undefined // look again next time, once something is installed
+    $.ui.toast('Sidecast needs python3, socat, or an nc with -U to control mpv')
     return
   }
   const speed = Number((await $.store.get('speed')) ?? 1) || 1

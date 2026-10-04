@@ -18,11 +18,13 @@ const band = { plugin: 'sidecast', component: 'AbovePrompt' as const,
 const pod = (args: string) => ({ command: 'pod', args, origin: { kind: 'human' }, presentation: 'text' }) as any
 
 /** The network, mpv, the store and the clock, faked beneath the mod. */
-const fakes = (on: On, searchResults = [NIGHT, OTHER]) => {
+const fakes = (on: On, searchResults = [NIGHT, OTHER], client = 'nc') => {
   const store: Record<string, unknown> = {}
   const launched: string[][] = []
   const sent: string[] = []
+  const tools: string[] = []
   const mpv = { isUp: false, pos: 125, dur: 3723, speed: 1 }
+  const toasts: string[] = []
   const prompts: string[] = []
 
   on('clock.now', () => ({ value: 1_790_000_000_000 }))
@@ -33,7 +35,10 @@ const fakes = (on: On, searchResults = [NIGHT, OTHER]) => {
     return { value: undefined }
   })
   on('ui.open', () => ({ value: { id: 'sidecast' } }) as any)
-  on('ui.toast', () => ({ value: undefined }) as any)
+  on('ui.toast', (_$, e) => {
+    toasts.push(String((e as any).text ?? (e as any).message ?? JSON.stringify(e)))
+    return { value: undefined } as any
+  })
   on('tool.register', (_$, e) => ({ value: { tool: `mcp__sidecast__${e.name}` } }) as any)
   on('session.end', () => ({ sessionId: 'test' }) as any)
   on('model.complete', (_$, e) => {
@@ -46,12 +51,14 @@ const fakes = (on: On, searchResults = [NIGHT, OTHER]) => {
   on('process.run', (_$, e) => {
     const ok = (stdout = '') => ({ value: { exitCode: 0, stdout, stderr: '' } }) as any
     if (e.argv[0] === 'sh' && e.argv[2] === 'command -v mpv') return ok('/opt/homebrew/bin/mpv')
+    if (e.argv[0] === 'sh' && e.argv[2]?.includes('uname -s')) return ok(`${client}\n`)
     if (e.argv[0] === 'sh') {
       launched.push([...e.argv])
       mpv.isUp = true
       return ok()
     }
     if (e.init?.stdin) sent.push(e.init.stdin)
+    tools.push(e.argv[0] ?? '')
     const speedSet = /"set_property","speed",([\d.]+)/.exec(e.init?.stdin ?? '')
     if (speedSet && mpv.isUp) mpv.speed = Number(speedSet[1])
     if (!mpv.isUp) return { value: { exitCode: 1, stdout: '', stderr: 'no socket' } } as any
@@ -62,7 +69,7 @@ const fakes = (on: On, searchResults = [NIGHT, OTHER]) => {
     const { Box } = $.ui.resolve(e)
     return h(Box, { key: 'engine' }) as RenderElement
   })
-  return { store, launched, sent, mpv, prompts }
+  return { store, launched, sent, mpv, prompts, toasts, tools }
 }
 
 test('search, subscribe, browse and play an episode', async ($, on) => {
@@ -201,4 +208,21 @@ test('a /clear empties the session copy, never the saved library', async ($, on)
   await $.tool.call({ tool: 'mcp__sidecast__play', id: 'ep-2' } as any)
   expect((store.shows as unknown[]).length).toBe(3)
   expect((store.progress as Record<string, { pos: number }>)['ep-1']?.pos).toBe(600)
+})
+
+test('on Linux without an nc that speaks -U, python3 drives the player', async ($, on) => {
+  const { launched, tools } = fakes(on, [NIGHT], 'python3')
+  await $.command.run(pod('night and day'))
+  await $.tool.call({ tool: 'mcp__sidecast__play', id: 'ep-2' } as any)
+  expect(launched.length).toBe(1)
+  await $.command.run(pod('pause'))
+  expect(tools.length > 0 && tools.every(t => t === 'python3')).toBe(true)
+})
+
+test('with nothing to talk to mpv, play says what to install and starts nothing', async ($, on) => {
+  const { launched, toasts } = fakes(on, [NIGHT], 'none')
+  await $.command.run(pod('night and day'))
+  await $.tool.call({ tool: 'mcp__sidecast__play', id: 'ep-2' } as any)
+  expect(launched.length).toBe(0)
+  expect(toasts.some(t => /python3, socat, or an nc with -U/.test(t))).toBe(true)
 })

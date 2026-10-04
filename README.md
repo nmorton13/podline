@@ -40,12 +40,16 @@ Every episode resumes where you left off, across sessions, and feeds are checked
 
 ## Install
 
-It needs Claude Code 2.1.288 or later, [mpv](https://mpv.io) to play audio, and `nc` (netcat) to control it:
+It needs Claude Code 2.1.288 or later and [mpv](https://mpv.io) to play audio:
 
 ```sh
-brew install mpv          # macOS: nc is already installed
-sudo apt install mpv netcat-openbsd    # Debian/Ubuntu: the OpenBSD nc, which supports -U
+brew install mpv          # macOS
+sudo pacman -S mpv        # Arch, Omarchy
+sudo apt install mpv      # Debian, Ubuntu
 ```
+
+To control `mpv`, sidecast uses whatever your system already has: the built-in `nc` on macOS, and on
+Linux `python3` (nearly every distro has it), else `socat`, else an `nc` that supports `-U`.
 
 Then, in Claude Code:
 
@@ -111,10 +115,12 @@ Everything sidecast runs, fetches and sends:
 - **Programs it runs:**
   - `mpv`, started in the background (`nohup`) with the episode's audio URL, to play it. It stops when
     the episode ends or the Claude Code session ends, and keeps playing through a `/clear`.
-  - `nc -U`, about once a second while something plays, to talk to that `mpv` over a Unix socket in
-    `/tmp` (`/tmp/sidecast-<time>.sock`): it asks for the position and speed, and sends pause, seek,
-    speed and quit.
-  - `sh -c 'command -v mpv'`, to check that `mpv` is installed before the first play.
+  - A small client, about once a second while something plays, to talk to that `mpv` over a Unix socket
+    in `/tmp` (`/tmp/sidecast-<time>.sock`): it asks for the position and speed, and sends pause, seek,
+    speed and quit. The client is `nc -U` on macOS; on Linux, `python3` running a 12-line socket client
+    that is in [`hooks/player.ts`](hooks/player.ts), else `socat`, else `nc -U`.
+  - Two checks with `sh`: that `mpv` is installed, before the first play, and which of those clients
+    exists, once per session.
 
   Every argument is passed as an argument list, never pasted into a shell command.
 - **What it fetches:**
