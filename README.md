@@ -12,7 +12,7 @@ Claude: "play the How I AI episode about Grok Bot", "queue the newest ThursdAI a
 `●` new, `◐` started, `✓` played. Subscribe by name (`/pod how i ai` searches the Apple Podcasts
 directory; one match subscribes straight away) or with any RSS feed URL.
 
-<img src="docs/images/sidecast-library.png" alt="The sidecast pane: How I AI expanded, its episodes marked new or started" width="640">
+<img src="docs/images/sidecast-playing.png" alt="Claude Code with the sidecast pane: Dan Carlin's Hardcore History expanded, Show 74 playing in the player card, and the now-playing bar above the prompt" width="800">
 
 **Know before you listen.** Press `?` on an episode and Claude sums it up from the show notes.
 
