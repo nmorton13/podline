@@ -4,7 +4,7 @@ A podcast player that lives inside [Claude Code](https://claude.com/claude-code)
 browse it in a pane beside your work, and listen with a now-playing bar above the prompt. Or just ask
 Claude: "play the How I AI episode about Grok Bot", "queue the newest ThursdAI after this one".
 
-![sidecast in Claude Code: Claude playing and queueing episodes, the library collapsed in the pane with Up Next, and the now-playing bar above the prompt](docs/images/sidecast-playing.png)
+![Claude Code after /pod: the conversation on the left, the sidecast pane docked on the right with three shows](docs/images/sidecast-fresh-pod.png)
 
 ▶ **[Watch the 30-second demo](docs/sidecast-demo.mp4)**
 
@@ -18,16 +18,16 @@ directory; one match subscribes straight away) or with any RSS feed URL.
 
 **Know before you listen.** Press `?` on an episode and Claude sums it up from the show notes.
 
-<img src="docs/images/sidecast-summary.png" alt="Claude's summary of an episode, unfolded in the pane" width="640">
+<img src="docs/images/sidecast-summary.png" alt="Claude's summary of an episode, unfolded in the pane" width="800">
 
 **Just ask.** Claude can browse your library and play, queue and control episodes. It picks up where
 you left off.
 
-<img src="docs/images/sidecast-ask.png" alt="Asking Claude to play the How I AI episode about Grok Bot; Claude finds it and plays it">
+<img src="docs/images/sidecast-ask.png" alt="Asking Claude to play the How I AI episode about Grok Bot; Claude finds it and plays it, with the now-playing bar below" width="800">
 
 **Up Next.** `+` queues an episode, or ask Claude to; when one finishes, the next one starts.
 
-<img src="docs/images/sidecast-upnext.png" alt="The player card and Up Next in the pane" width="640">
+<img src="docs/images/sidecast-upnext.png" alt="The player card and two episodes in Up Next" width="800">
 
 **A now-playing bar above the prompt,** with keys: `ctrl+x tab`, then `b` back 15 s, `p` pause,
 `f` forward 30 s, `x` speed, `s` stop.
