@@ -6,8 +6,6 @@ Claude: "play the How I AI episode about Grok Bot", "queue the newest ThursdAI a
 
 ![Claude Code after /pod: the conversation on the left, the sidecast pane docked on the right with three shows](docs/images/sidecast-fresh-pod.png)
 
-▶ **[Watch the 30-second demo](docs/sidecast-demo.mp4)**
-
 ## What it does
 
 **Your library, beside your work.** `/pod` opens a pane with your shows and their latest episodes:
@@ -42,10 +40,11 @@ Every episode resumes where you left off, across sessions, and feeds are checked
 
 ## Install
 
-It needs Claude Code 2.1.288 or later, and [mpv](https://mpv.io) for playback:
+It needs Claude Code 2.1.288 or later, [mpv](https://mpv.io) to play audio, and `nc` (netcat) to control it:
 
 ```sh
-brew install mpv          # macOS; on Linux: sudo apt install mpv (or dnf, pacman…)
+brew install mpv          # macOS: nc is already installed
+sudo apt install mpv netcat-openbsd    # Debian/Ubuntu: the OpenBSD nc, which supports -U
 ```
 
 Then, in Claude Code:
@@ -105,14 +104,33 @@ sidecast gives Claude six tools: `library`, `episode`, `play`, `queue`, `control
 words and Claude looks through your shows and their show notes, then plays, queues or controls playback for
 you. Show notes come from third-party feeds, and sidecast labels them for Claude as data, not instructions.
 
-## How it works
+## What sidecast does on your machine
 
-- **Playback** runs in a background `mpv`, driven over a Unix socket, so it keeps playing through a
-  `/clear` or a reload of the mod, and stops when the Claude Code session ends.
-- **Your library** (subscriptions, positions, Up Next, summaries) lives in Claude Code's plugin store.
-- **Summaries** come from a small Claude model (Haiku), written once per episode and kept.
+Everything sidecast runs, fetches and sends:
 
-See [SECURITY.md](SECURITY.md) for everything sidecast touches on your machine.
+- **Programs it runs:**
+  - `mpv`, started in the background (`nohup`) with the episode's audio URL, to play it. It stops when
+    the episode ends or the Claude Code session ends, and keeps playing through a `/clear`.
+  - `nc -U`, about once a second while something plays, to talk to that `mpv` over a Unix socket in
+    `/tmp` (`/tmp/sidecast-<time>.sock`): it asks for the position and speed, and sends pause, seek,
+    speed and quit.
+  - `sh -c 'command -v mpv'`, to check that `mpv` is installed before the first play.
+
+  Every argument is passed as an argument list, never pasted into a shell command.
+- **What it fetches:**
+  - The RSS feeds you subscribe to, once an hour and when you press refresh.
+  - The Apple Podcasts search API (`itunes.apple.com`), when you search for a show.
+  - The episode audio, streamed by `mpv` from the URL in the feed (`http`/`https` only).
+- **What it sends:**
+  - When you press `?`, the show's name and author and the episode's title, length and show notes go to a
+    small Claude model (Haiku), through Claude Code's own connection, for the summary.
+  - Nothing else leaves your machine. There are no accounts, keys or analytics.
+- **What it keeps:** subscriptions, positions, Up Next, speed and summaries, in Claude Code's plugin
+  store on your machine.
+- **Feed text is untrusted.** sidecast strips terminal escape codes and control characters from it, and
+  labels it for Claude as data, not instructions.
+
+[SECURITY.md](SECURITY.md) has the same, and how to report a vulnerability.
 
 ## Development
 
