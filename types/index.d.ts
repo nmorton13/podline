@@ -23,7 +23,7 @@ export type NowPlaying = {
   /** True until mpv first answers: the stream is still opening. */
   isLoading: boolean
   startedAt: number
-  /** mpv's control socket for this play; absent for a player from an older build. */
+  /** mpv's control socket for this play, in a folder only this user can open. */
   socket?: string
 }
 export type SearchResult = { feedUrl: string; title: string; author: string }

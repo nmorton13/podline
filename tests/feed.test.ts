@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import { decode, parseDuration, parseFeed, parseSearch, safeUrl } from '../hooks/feed'
-import { ipcCall, parseClient, parseReplies, startArgv, toReading } from '../hooks/player'
+import { ipcCall, parseClient, parseDir, parseReplies, socketFor, startArgv, toReading } from '../hooks/player'
 import { isFinished, nextSpeed, resumeAt } from '../hooks/register'
 
 import { FEED } from './fixtures'
@@ -76,4 +76,14 @@ test('each mpv client gets its own argv, and the same JSON lines', () => {
   expect(parseClient('python3\n')).toBe('python3')
   expect(parseClient('none\n')).toBe(null)
   expect(parseClient('rm -rf /')).toBe(null)
+})
+
+test('player sockets go in a private folder, and only a plain path is accepted', () => {
+  expect(parseDir('/var/folders/lg/x/T//sidecast.Ab12Cd\n')).toBe('/var/folders/lg/x/T/sidecast.Ab12Cd')
+  expect(parseDir('/run/user/1000/sidecast.Q9z')).toBe('/run/user/1000/sidecast.Q9z')
+  expect(parseDir('mktemp: failed')).toBe(null)
+  expect(parseDir('/tmp/../etc')).toBe(null)
+  expect(parseDir('/tmp/a b')).toBe(null)
+  expect(parseDir('/tmp/a\n/tmp/b')).toBe(null)
+  expect(socketFor('/run/user/1000/sidecast.Q9z', 42)).toBe('/run/user/1000/sidecast.Q9z/mpv-42.sock')
 })

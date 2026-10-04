@@ -1,11 +1,20 @@
 // One player for the machine: mpv in the background, driven over its JSON IPC
 // socket, so playback outlives a reload of the mod. This file builds the
 // commands and reads the replies; register.tsx runs them.
-/** The socket of a player started before sockets were per play. */
-export const SOCKET = '/tmp/sidecast-mpv.sock'
+/**
+ * Makes a folder only this user can open (mode 0700), in the user's own runtime or temp folder, for
+ * mpv's control socket: whoever can connect to that socket can make mpv run programs.
+ */
+export const PRIVATE_DIR_PROBE = 'mktemp -d "${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/sidecast.XXXXXX"'
+
+/** The folder mktemp printed, or null for anything that isn't one plain absolute path. */
+export const parseDir = (stdout: string): string | null => {
+  const dir = stdout.trim().replace(/\/+/g, '/')
+  return /^\/[\w./-]+$/.test(dir) && !dir.split('/').includes('..') ? dir : null
+}
 
 /** Each play gets its own socket, so a player still shutting down never takes the new one's. */
-export const socketFor = (startedAt: number) => `/tmp/sidecast-${startedAt}.sock`
+export const socketFor = (dir: string, startedAt: number) => `${dir}/mpv-${startedAt}.sock`
 
 export type Reading = { pos: number | null; dur: number | null; isPaused: boolean | null; speed: number | null }
 

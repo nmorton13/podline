@@ -52,6 +52,7 @@ const fakes = (on: On, searchResults = [NIGHT, OTHER], client = 'nc') => {
     const ok = (stdout = '') => ({ value: { exitCode: 0, stdout, stderr: '' } }) as any
     if (e.argv[0] === 'sh' && e.argv[2] === 'command -v mpv') return ok('/opt/homebrew/bin/mpv')
     if (e.argv[0] === 'sh' && e.argv[2]?.includes('uname -s')) return ok(`${client}\n`)
+    if (e.argv[0] === 'sh' && e.argv[2]?.startsWith('mktemp -d')) return ok('/private/var/folders/x/T/sidecast.Ab12Cd\n')
     if (e.argv[0] === 'sh') {
       launched.push([...e.argv])
       mpv.isUp = true
@@ -85,6 +86,8 @@ test('search, subscribe, browse and play an episode', async ($, on) => {
 
   await ui.press({ key: 'play-0-0' })
   expect(launched.at(-1)?.at(-1)).toBe('https://cdn.example.com/2.mp3?a=1&b=2')
+  // The control socket lives in the private folder mktemp made, never in the shared /tmp.
+  expect(launched.at(-1)?.at(-5)).toMatch(/^\/private\/var\/folders\/x\/T\/sidecast\.Ab12Cd\/mpv-\d+\.sock$/)
   await ui.unmount()
 
   // The pane carries the controls too.

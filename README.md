@@ -116,11 +116,12 @@ Everything sidecast runs, fetches and sends:
   - `mpv`, started in the background (`nohup`) with the episode's audio URL, to play it. It stops when
     the episode ends or the Claude Code session ends, and keeps playing through a `/clear`.
   - A small client, about once a second while something plays, to talk to that `mpv` over a Unix socket
-    in `/tmp` (`/tmp/sidecast-<time>.sock`): it asks for the position and speed, and sends pause, seek,
+    in a folder only you can open (made with `mktemp -d` in `$XDG_RUNTIME_DIR` or `$TMPDIR`), since
+    anyone who can reach that socket could tell `mpv` to run programs: it asks for the position and speed, and sends pause, seek,
     speed and quit. The client is `nc -U` on macOS; on Linux, `python3` running a 12-line socket client
     that is in [`hooks/player.ts`](hooks/player.ts), else `socat`, else `nc -U`.
-  - Two checks with `sh`: that `mpv` is installed, before the first play, and which of those clients
-    exists, once per session.
+  - Three small `sh` commands: one checks that `mpv` is installed, one finds which of those clients
+    exists, and one makes that private folder, each once per session.
 
   Every argument is passed as an argument list, never pasted into a shell command.
 - **What it fetches:**

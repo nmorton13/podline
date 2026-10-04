@@ -4,7 +4,7 @@ import type { EngineInterface, Register, Timer } from 'claude-code'
 import type { Episode, Library, NowPlaying, Progress, QueueItem, Show, View } from '../types'
 import { parseFeed, parseSearch, safeUrl, searchUrl } from './feed'
 import { clock, day, fit, length, progressBar } from './format'
-import { CLIENT_PROBE, ipcCall, parseClient, parseReplies, READ_COMMANDS, SOCKET, socketFor, startArgv, toReading } from './player'
+import { CLIENT_PROBE, ipcCall, parseClient, parseDir, parseReplies, PRIVATE_DIR_PROBE, READ_COMMANDS, socketFor, startArgv, toReading } from './player'
 import type { IpcClient } from './player'
 
 const PANE = 'sidecast'
@@ -211,7 +211,7 @@ const ipcClient = async ($: EngineInterface) => {
 /** Sends mpv commands; each one's data, or null when no player answers. */
 const ipc = async ($: EngineInterface, socket: string, commands: unknown[][]): Promise<unknown[] | null> => {
   const tool = await ipcClient($)
-  if (!tool) return null
+  if (!tool || !socket) return null
   const { argv, stdin } = ipcCall(tool, socket, commands)
   try {
     const run = await $.process.run(argv, { stdin, timeoutMs: 3000 })
@@ -230,8 +230,23 @@ const quitPlayer = async ($: EngineInterface, socket: string) => {
   await ipc($, socket, [['quit']])
 }
 
-/** The socket of what is playing; a player from an older build answers on the shared one. */
-const socketOf = (now: NowPlaying | null) => now?.socket ?? SOCKET
+/** The socket of what is playing; '' when nothing is. */
+const socketOf = (now: NowPlaying | null) => now?.socket ?? ''
+
+// This session's private folder for player sockets; undefined until made.
+let socketDir: string | null | undefined
+
+const privateDir = async ($: EngineInterface) => {
+  if (socketDir === undefined) {
+    try {
+      const made = await $.process.run(['sh', '-c', PRIVATE_DIR_PROBE])
+      socketDir = made.exitCode === 0 ? parseDir(made.stdout) : null
+    } catch {
+      socketDir = null
+    }
+  }
+  return socketDir
+}
 
 /** Sends commands to what is playing; false when nothing is. */
 const command = async ($: EngineInterface, commands: unknown[][]) => {
@@ -343,8 +358,14 @@ const play = async ($: EngineInterface, show: Show, ep: Episode) => {
     await saveProgress($, current)
     await quitPlayer($, socketOf(current))
   }
+  const dir = await privateDir($)
+  if (!dir) {
+    socketDir = undefined
+    $.ui.toast('Sidecast could not make a private folder for the player')
+    return
+  }
   const startedAt = await $.clock.now()
-  const socket = socketFor(startedAt)
+  const socket = socketFor(dir, startedAt)
   try {
     await startPlayer($, { socket, url: ep.url, title: `${show.title} — ${ep.title}`, startAt, speed })
   } catch (error) {
