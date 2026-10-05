@@ -420,9 +420,12 @@ const stopPlaying = async ($: EngineInterface) => {
   await ensure($)
   const last = await read($, nowPlaying)
   stopPolling()
-  // Keep the exact spot, not the last once-a-second reading.
-  const reading = last ? await readPlayer($, socketOf(last)) : null
-  const now = last && reading?.pos != null ? { ...last, pos: reading.pos } : last
+  let now = last
+  if (last) {
+    // Keep the exact spot, not the last once-a-second reading.
+    const reading = await readPlayer($, socketOf(last))
+    if (reading?.pos != null) now = { ...last, pos: reading.pos }
+  }
   if (now) await saveProgress($, now)
   await quitPlayer($, socketOf(now))
   await setNow($, null)
