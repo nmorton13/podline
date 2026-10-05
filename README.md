@@ -134,7 +134,8 @@ Everything sidecast runs, fetches and sends:
 
   The feed and search requests are plain GETs to those addresses. The feed address is whatever you
   subscribed to, which is why it isn't fixed in the code. They carry nothing from your library, your
-  positions or your conversation.
+  positions or your conversation. Feed requests name the app in a `User-Agent` header,
+  `sidecast (+https://github.com/nmorton13/sidecast)`, so podcast hosts can see what is fetching.
 - **What it sends:**
   - When you press `?`, the show's name and author and the episode's title, length and show notes go to a
     small Claude model (Haiku), through Claude Code's own connection, for the summary.

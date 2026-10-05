@@ -111,7 +111,7 @@ const setNow = async ($: EngineInterface, now: NowPlaying | null) => {
 
 const fetchFeed = async ($: EngineInterface, url: string) => {
   if (!safeUrl(url)) throw new Error('feeds must be http(s) URLs')
-  const response = await $.http.fetch(url, { headers: { 'User-Agent': 'sidecast/0.3 (+https://github.com/nmorton13/sidecast)' } })
+  const response = await $.http.fetch(url, { headers: { 'User-Agent': 'sidecast (+https://github.com/nmorton13/sidecast)' } })
   if (!response.ok) throw new Error(`feed answered ${response.status}`)
   return parseFeed(response.text)
 }
