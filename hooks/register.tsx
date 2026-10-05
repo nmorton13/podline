@@ -60,16 +60,16 @@ export const unplayed = (show: Show, episodes: Episode[], heard: Record<string, 
 const stored = async <T,>($: EngineInterface, key: string, fallback: T) => ((await $.store.get(key)) ?? fallback) as T
 
 const hydrate = async ($: EngineInterface) => {
-  const shows = await stored<Show[]>($, 'shows', [])
-  const episodes = await stored<Record<string, Episode[]>>($, 'episodes', {})
+  const shows = await stored($, 'shows', [] as Show[])
+  const episodes = await stored($, 'episodes', {} as Record<string, Episode[]>)
   await update($, library, () => ({ shows, episodes }))
-  const heard = await stored<Record<string, Progress>>($, 'progress', {})
+  const heard = await stored($, 'progress', {} as Record<string, Progress>)
   await update($, progress, () => heard)
-  const upNext = await stored<QueueItem[]>($, 'queue', [])
+  const upNext = await stored($, 'queue', [] as QueueItem[])
   await update($, queue, () => upNext)
-  const written = await stored<Record<string, string>>($, 'summaries', {})
+  const written = await stored($, 'summaries', {} as Record<string, string>)
   await update($, summaries, () => written)
-  const playing = await stored<NowPlaying | null>($, 'now', null)
+  const playing = await stored($, 'now', null as NowPlaying | null)
   if (playing && !(await read($, nowPlaying))) await update($, nowPlaying, () => playing)
   await update($, loaded, () => true)
   if (await read($, nowPlaying)) startPolling($)
@@ -91,11 +91,11 @@ const snapshot = async ($: EngineInterface) => {
     }
   }
   return {
-    lib: { shows: await stored<Show[]>($, 'shows', []), episodes: await stored<Record<string, Episode[]>>($, 'episodes', {}) },
-    heard: await stored<Record<string, Progress>>($, 'progress', {}),
-    upNextItems: await stored<QueueItem[]>($, 'queue', []),
-    written: await stored<Record<string, string>>($, 'summaries', {}),
-    now: await stored<NowPlaying | null>($, 'now', null),
+    lib: { shows: await stored($, 'shows', [] as Show[]), episodes: await stored($, 'episodes', {} as Record<string, Episode[]>) },
+    heard: await stored($, 'progress', {} as Record<string, Progress>),
+    upNextItems: await stored($, 'queue', [] as QueueItem[]),
+    written: await stored($, 'summaries', {} as Record<string, string>),
+    now: await stored($, 'now', null as NowPlaying | null),
   }
 }
 
