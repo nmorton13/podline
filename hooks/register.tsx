@@ -57,19 +57,30 @@ export const unplayed = (show: Show, episodes: Episode[], heard: Record<string, 
 // (it ends the session for mods, with no session.start after). Everything that
 // reads to write calls ensure first, so an empty copy is never saved over the record.
 
-const stored = async <T,>($: EngineInterface, key: string, fallback: T) => ((await $.store.get(key)) ?? fallback) as T
+/** The record as saved, with empty values for what was never saved. */
+const loadRecord = async ($: EngineInterface) => {
+  const shows = await $.store.get('shows')
+  const episodes = await $.store.get('episodes')
+  const heard = await $.store.get('progress')
+  const upNext = await $.store.get('queue')
+  const written = await $.store.get('summaries')
+  const now = await $.store.get('now')
+  return {
+    lib: { shows: (shows ?? []) as Show[], episodes: (episodes ?? {}) as Record<string, Episode[]> },
+    heard: (heard ?? {}) as Record<string, Progress>,
+    upNextItems: (upNext ?? []) as QueueItem[],
+    written: (written ?? {}) as Record<string, string>,
+    now: (now ?? null) as NowPlaying | null,
+  }
+}
 
 const hydrate = async ($: EngineInterface) => {
-  const shows = await stored($, 'shows', [] as Show[])
-  const episodes = await stored($, 'episodes', {} as Record<string, Episode[]>)
-  await update($, library, () => ({ shows, episodes }))
-  const heard = await stored($, 'progress', {} as Record<string, Progress>)
-  await update($, progress, () => heard)
-  const upNext = await stored($, 'queue', [] as QueueItem[])
-  await update($, queue, () => upNext)
-  const written = await stored($, 'summaries', {} as Record<string, string>)
-  await update($, summaries, () => written)
-  const playing = await stored($, 'now', null as NowPlaying | null)
+  const saved = await loadRecord($)
+  await update($, library, () => saved.lib)
+  await update($, progress, () => saved.heard)
+  await update($, queue, () => saved.upNextItems)
+  await update($, summaries, () => saved.written)
+  const playing = saved.now
   if (playing && !(await read($, nowPlaying))) await update($, nowPlaying, () => playing)
   await update($, loaded, () => true)
   if (await read($, nowPlaying)) startPolling($)
@@ -90,13 +101,7 @@ const snapshot = async ($: EngineInterface) => {
       now: await read($, nowPlaying),
     }
   }
-  return {
-    lib: { shows: await stored($, 'shows', [] as Show[]), episodes: await stored($, 'episodes', {} as Record<string, Episode[]>) },
-    heard: await stored($, 'progress', {} as Record<string, Progress>),
-    upNextItems: await stored($, 'queue', [] as QueueItem[]),
-    written: await stored($, 'summaries', {} as Record<string, string>),
-    now: await stored($, 'now', null as NowPlaying | null),
-  }
+  return await loadRecord($)
 }
 
 const setNow = async ($: EngineInterface, now: NowPlaying | null) => {
@@ -203,7 +208,8 @@ let client: IpcClient | null | undefined
 const ipcClient = async ($: EngineInterface) => {
   if (client === undefined) {
     try {
-      client = parseClient((await $.process.run(['sh', '-c', CLIENT_PROBE])).stdout)
+      const probe = await $.process.run(['sh', '-c', CLIENT_PROBE])
+      client = parseClient(probe.stdout)
     } catch {
       client = null
     }
@@ -268,7 +274,8 @@ const startPlayer = async ($: EngineInterface, args: Parameters<typeof startArgv
 
 const hasMpv = async ($: EngineInterface) => {
   try {
-    return (await $.process.run(['sh', '-c', 'command -v mpv'])).exitCode === 0
+    const check = await $.process.run(['sh', '-c', 'command -v mpv'])
+    return check.exitCode === 0
   } catch {
     return false
   }
@@ -316,7 +323,10 @@ const poll = async ($: EngineInterface) => {
     const reading = await readPlayer($, socketOf(now))
     if (!reading) {
       // mpv opens its socket at once; give a slow start a little grace.
-      if (now.isLoading && (await $.clock.now()) - now.startedAt < 15000) return
+      if (now.isLoading) {
+        const at = await $.clock.now()
+        if (at - now.startedAt < 15000) return
+      }
       return await ended($, now)
     }
     const next: NowPlaying = {
@@ -352,7 +362,8 @@ const play = async ($: EngineInterface, show: Show, ep: Episode) => {
     $.ui.toast('Sidecast needs python3, socat, or an nc with -U to control mpv')
     return
   }
-  const speed = Number((await $.store.get('speed')) ?? 1) || 1
+  const savedSpeed = await $.store.get('speed')
+  const speed = Number(savedSpeed ?? 1) || 1
   const saved = (await read($, progress))[ep.guid]
   const startAt = resumeAt(saved)
   if ((await read($, queue)).some(item => item.guid === ep.guid)) await unqueue($, ep.guid)
@@ -744,8 +755,10 @@ export const register: Register = on => {
     for (const tool of TOOLS) await $.tool.register({ ...tool, inputSchema: tool.inputSchema as Record<string, unknown> })
 
     const shows = (await read($, library)).shows
-    const refreshedAt = Number((await $.store.get('refreshedAt')) ?? 0)
-    if (shows.length && (await $.clock.now()) - refreshedAt > HOUR) void refreshAll($, true)
+    const lastRefresh = await $.store.get('refreshedAt')
+    const refreshedAt = Number(lastRefresh ?? 0)
+    const at = await $.clock.now()
+    if (shows.length && at - refreshedAt > HOUR) void refreshAll($, true)
     $.clock.every(HOUR, () => void refreshAll($, true))
 
     return next(e)
