@@ -142,9 +142,10 @@ Everything sidecast runs, fetches and sends:
   - Nothing else leaves your machine. There are no accounts, keys or analytics.
 - **What it keeps:** subscriptions, positions, Up Next, speed and summaries, in Claude Code's plugin
   store on your machine.
-- **The tools it answers:** sidecast registers its six tools (`mcp__sidecast__library`, `episode`,
-  `play`, `queue`, `control` and `subscribe`) and answers calls to those itself. It doesn't intercept,
-  watch or change any other tool.
+- **The tools and commands it answers:** sidecast registers its six tools (`mcp__sidecast__library`,
+  `episode`, `play`, `queue`, `control` and `subscribe`) and answers calls to those itself. Its two
+  command hooks run only for its own commands, `/pod` and `/sidecast`. It doesn't intercept, watch or
+  change any other tool or command.
 - **Feed text is untrusted.** sidecast strips terminal escape codes and control characters from it, and
   labels it for Claude as data, not instructions.
 
