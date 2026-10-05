@@ -125,6 +125,35 @@ test('search, subscribe, browse and play an episode', async ($, on) => {
   expect((store.progress as Record<string, { pos: number }>)['ep-2']?.pos).toBe(125)
 })
 
+for (const entry of ['command', 'tool', 'session.end', 'pod-stop', 'pane-stop'] as const) {
+  test(`${entry} stops playback and saves the current player position`, async ($, on) => {
+    const { store, sent, mpv } = fakes(on, [NIGHT])
+    await $.command.run(pod('night and day'))
+    await $.tool.call({ tool: 'mcp__sidecast__play', id: 'ep-2' } as any)
+    // Advance beyond the last poll: stopping must ask mpv for the exact position.
+    mpv.pos = 600
+    const sentBefore = sent.length
+
+    if (entry === 'command') {
+      const reply = await $.command.run(pod('stop'))
+      expect(reply.text).toContain('10:00')
+    } else if (entry === 'tool') {
+      const reply = await $.tool.call({ tool: 'mcp__sidecast__control', action: 'stop' } as any)
+      expect(String(reply.result)).toContain('10:00')
+    } else if (entry === 'session.end') {
+      await $.session.end({ reason: 'exit' } as any)
+    } else {
+      const ui = await $.ui.mount({ ...(entry === 'pod-stop' ? band : pane()), surface: 'terminal' })
+      await ui.press({ key: entry })
+      await ui.unmount()
+    }
+
+    expect((store.progress as Record<string, { pos: number }>)['ep-2']?.pos).toBe(600)
+    expect(store.now).toBe(null)
+    expect(sent.slice(sentBefore).some(line => line.includes('"quit"'))).toBe(true)
+  })
+}
+
 test('/sidecast is the same command as /pod', async ($, on) => {
   fakes(on, [NIGHT])
   await $.command.run(pod('night and day'))

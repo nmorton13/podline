@@ -414,9 +414,9 @@ const setSpeed = async ($: EngineInterface, speed: number) => {
 export const SPEEDS = [1, 1.25, 1.5, 1.75, 2]
 
 /** The next speed up the ladder, wrapping back to 1×. */
-export const nextSpeed = (speed: number) => SPEEDS.find(s => s > speed + 0.01) ?? SPEEDS[0]!
+export const nextSpeed = (speed: number) => SPEEDS.find(s => s > speed + 0.01) ?? SPEEDS[0]!;
 
-const stopPlaying = async ($: EngineInterface) => {
+async function stopPlaying($: EngineInterface) {
   await ensure($)
   const last = await read($, nowPlaying)
   stopPolling()
