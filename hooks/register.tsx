@@ -44,9 +44,12 @@ export const isFinished = (pos: number, dur: number) => dur > 0 && (dur - pos < 
 /** Where to start an episode: a little before where it was left, unless it was finished. */
 export const resumeAt = (saved: Progress | undefined) => (saved && !saved.isDone ? Math.max(0, saved.pos - 5) : 0)
 
-/** Episodes published within a week before subscribing, or since, that have not been played. */
+/** Published within a week before subscribing, or since: recent enough to be new while unplayed. */
+export const isRecent = (show: Show, ep: Episode) => ep.date >= show.subscribedAt - 7 * 24 * HOUR
+
+/** Episodes that are new: recent and not played. */
 export const unplayed = (show: Show, episodes: Episode[], heard: Record<string, Progress>) =>
-  episodes.filter(ep => ep.date >= show.subscribedAt - 7 * 24 * HOUR && !heard[ep.guid]).length
+  episodes.filter(ep => isRecent(show, ep) && !heard[ep.guid]).length
 
 // --- what is kept ----------------------------------------------------------
 
@@ -933,13 +936,15 @@ export const register: Register = on => {
                   {episodes.slice(0, EPISODES_SHOWN).map((ep, ei) => {
                     const saved = heard[ep.guid]
                     const isPlaying = now?.guid === ep.guid
-                    const mark = isPlaying ? '▶' : saved?.isDone ? '✓' : saved ? '◐' : '●'
+                    // ● only for what the show's "N new" counts; older unplayed episodes are a quiet ○
+                    const isNew = !saved && isRecent(show, ep)
+                    const mark = isPlaying ? '▶' : saved?.isDone ? '✓' : saved ? '◐' : isNew ? '●' : '○'
                     const isInfo = v.infoGuid === ep.guid
                     const about = written[ep.guid]
                     return (
                       <Box key={`ep-${si}-${ei}`} flexDirection="column">
                         <Box gap={1}>
-                          <Text color={isPlaying || !saved ? 'claude' : undefined} dimColor={saved?.isDone}>{mark}</Text>
+                          <Text color={isPlaying || isNew ? 'claude' : undefined} dimColor={!isPlaying && (saved?.isDone || (!saved && !isNew))}>{mark}</Text>
                           {isNarrow ? null : <Text dimColor>{day(ep.date)}</Text>}
                           <Button key={`play-${si}-${ei}`} plain dimColor={saved?.isDone}
                             label={fit(ep.title, Math.max(10, width - (isNarrow ? 18 : 30)))} onPress={() => play($, show, ep)} />
@@ -975,7 +980,7 @@ export const register: Register = on => {
 
         {lib.shows.length ? (
           <Box marginTop={1} flexWrap="wrap" columnGap={2}>
-            {['● new', '◐ started', '✓ played', '? about', '+ up next'].map(item => (
+            {['● new', '○ unplayed', '◐ started', '✓ played', '? about', '+ up next'].map(item => (
               <Text key={`key-${item}`} dimColor>{item}</Text>
             ))}
           </Box>

@@ -9,7 +9,8 @@ Claude: "play the How I AI episode about Grok Bot", "queue the newest ThursdAI a
 ## What it does
 
 **Your library, beside your work.** `/pod` opens a pane with your shows and their latest episodes:
-`●` new, `◐` started, `✓` played. Subscribe by name (`/pod how i ai` searches the Apple Podcasts
+`●` new, `○` unplayed, `◐` started, `✓` played. New means published since a week before you
+subscribed and not yet started. Subscribe by name (`/pod how i ai` searches the Apple Podcasts
 directory; one match subscribes straight away) or with any RSS feed URL.
 
 <img src="docs/images/sidecast-playing.png" alt="Claude Code with the sidecast pane: Dan Carlin's Hardcore History expanded, Show 74 playing in the player card, and the now-playing bar above the prompt" width="800">

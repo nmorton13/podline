@@ -83,6 +83,10 @@ test('search, subscribe, browse and play an episode', async ($, on) => {
   await ui.press({ key: 'sub-0' })
   expect((store.shows as { title: string }[])[0]?.title).toBe('Night & Day')
   expect(await ui.find({ text: /Newest ☃/ })).toBeDefined()
+  // ● marks only what the show's count calls new; the older unplayed episode gets a quiet ○.
+  expect(await ui.find({ text: /^1 new$/ })).toBeDefined()
+  expect(await ui.find({ text: /^●$/ })).toBeDefined()
+  expect(await ui.find({ text: /^○$/ })).toBeDefined()
 
   await ui.press({ key: 'play-0-0' })
   expect(launched.at(-1)?.at(-1)).toBe('https://cdn.example.com/2.mp3?a=1&b=2')
