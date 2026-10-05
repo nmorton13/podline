@@ -416,7 +416,7 @@ export const SPEEDS = [1, 1.25, 1.5, 1.75, 2]
 /** The next speed up the ladder, wrapping back to 1×. */
 export const nextSpeed = (speed: number) => SPEEDS.find(s => s > speed + 0.01) ?? SPEEDS[0]!
 
-const stop = async ($: EngineInterface) => {
+const stopPlaying = async ($: EngineInterface) => {
   await ensure($)
   const last = await read($, nowPlaying)
   stopPolling()
@@ -611,7 +611,7 @@ const control = async ($: EngineInterface, input: { action?: string; seconds?: n
       await setSpeed($, input.speed)
       return `Speed ${input.speed}x.`
     case 'stop': {
-      const was = await stop($)
+      const was = await stopPlaying($)
       return was ? `Stopped ${was.title} at ${clock(was.pos)}.` : 'Nothing is playing.'
     }
     case 'next': {
@@ -716,7 +716,7 @@ const pod = async ($: EngineInterface, args: string) => {
       return { text: `Speed ${speed}×.` }
     }
     case 'stop': {
-      const was = await stop($)
+      const was = await stopPlaying($)
       return { text: was ? `Stopped ${was.title}; it resumes from ${clock(was.pos)}.` : 'Nothing is playing.' }
     }
     case 'next': {
@@ -800,7 +800,7 @@ export const register: Register = on => {
     // A /clear ends the session for mods but the person is still here: keep playing.
     // Claude Code empties a mod's state on /clear: mark the copy stale so the record is read again.
     if (e.reason === 'clear') await update($, loaded, () => false)
-    else await stop($)
+    else await stopPlaying($)
     return next(e)
   })
 
@@ -835,7 +835,7 @@ export const register: Register = on => {
             <Button key="pod-toggle" plain hotkey="p" label={now.isPaused ? 'play' : 'pause'} onPress={() => togglePause($)} />
             <Button key="pod-skip" plain hotkey="f" label="30»" onPress={() => seek($, 30)} />
             <Button key="pod-speed" plain hotkey="x" label={`${now.speed}×`} onPress={() => setSpeed($, nextSpeed(now.speed))} />
-            <Button key="pod-stop" plain hotkey="s" dimColor label="stop" onPress={() => stop($)} />
+            <Button key="pod-stop" plain hotkey="s" dimColor label="stop" onPress={() => stopPlaying($)} />
           </Box>
         </Box>
         <Box>
@@ -889,7 +889,7 @@ export const register: Register = on => {
               <Button key="pane-skip" plain hotkey="f" label="30»" onPress={() => seek($, 30)} />
               <Button key="pane-speed" plain hotkey="x" label={`${now.speed}×`} onPress={() => setSpeed($, nextSpeed(now.speed))} />
               {upNext.length ? <Button key="pane-next" plain hotkey="n" label="next" onPress={() => playNext($)} /> : null}
-              <Button key="pane-stop" plain hotkey="s" dimColor label="stop" onPress={() => stop($)} />
+              <Button key="pane-stop" plain hotkey="s" dimColor label="stop" onPress={() => stopPlaying($)} />
             </Box>
           </Box>
         ) : null}
