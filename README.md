@@ -124,17 +124,26 @@ Everything sidecast runs, fetches and sends:
   - Three small `sh` commands: one checks that `mpv` is installed, one finds which of those clients
     exists, and one makes that private folder, each once per session.
 
-  Every argument is passed as an argument list, never pasted into a shell command.
+  Every argument is passed as an argument list, never pasted into a shell command. The programs and
+  their arguments are fixed in the code: nothing a feed or a server returns chooses what runs. The
+  only outside values passed are the episode's audio URL, as `mpv`'s file argument, and the socket path.
 - **What it fetches:**
   - The RSS feeds you subscribe to, once an hour and when you press refresh.
   - The Apple Podcasts search API (`itunes.apple.com`), when you search for a show.
   - The episode audio, streamed by `mpv` from the URL in the feed (`http`/`https` only).
+
+  The feed and search requests are plain GETs to those addresses. The feed address is whatever you
+  subscribed to, which is why it isn't fixed in the code. They carry nothing from your library, your
+  positions or your conversation.
 - **What it sends:**
   - When you press `?`, the show's name and author and the episode's title, length and show notes go to a
     small Claude model (Haiku), through Claude Code's own connection, for the summary.
   - Nothing else leaves your machine. There are no accounts, keys or analytics.
 - **What it keeps:** subscriptions, positions, Up Next, speed and summaries, in Claude Code's plugin
   store on your machine.
+- **The tools it answers:** sidecast registers its six tools (`mcp__sidecast__library`, `episode`,
+  `play`, `queue`, `control` and `subscribe`) and answers calls to those itself. It doesn't intercept,
+  watch or change any other tool.
 - **Feed text is untrusted.** sidecast strips terminal escape codes and control characters from it, and
   labels it for Claude as data, not instructions.
 
