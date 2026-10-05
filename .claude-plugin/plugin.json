@@ -8,6 +8,9 @@
   "types": "./types/index.d.ts",
   "homepage": "https://github.com/nmorton13/sidecast",
   "repository": "https://github.com/nmorton13/sidecast",
+  "documentationUrl": "https://github.com/nmorton13/sidecast#readme",
+  "supportUrl": "https://github.com/nmorton13/sidecast/issues",
+  "privacyPolicyUrl": "https://github.com/nmorton13/sidecast/blob/main/PRIVACY.md",
   "license": "MIT",
   "keywords": [
     "podcast",
